@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laboratorio Virtual - Ley de Hooke</title>
+    <style>
+        :root {
+            --primary: #1a5276;
+            --secondary: #2980b9;
+            --accent: #e67e22;
+            --bg: #f4f7f6;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+        body { padding: 15px; background-color: var(--bg); color: var(--text); }
+
+        /* BANNER INSTITUCIONAL */
+        header {
+            background: linear-gradient(135deg, #1b365d, #2980b9);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            margin-bottom: 20px;
+        }
+        header h1 { font-size: 1.5rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+        header h2 { font-size: 1.1rem; font-weight: 400; opacity: 0.9; }
+        
+        .credits-bar {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            background: #eaf2f8;
+            border-left: 5px solid var(--secondary);
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        /* ESTRUCTURA GENERAL */
+        .grid-container { display: flex; flex-direction: column; gap: 20px; }
+        @media (min-width: 768px) { .grid-container { display: grid; grid-template-columns: 1fr 1fr; } }
+
+        .card {
+            background: var(--card-bg);
+            padding: 18px;
+            border-radius: 12px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+            border-top: 4px solid var(--secondary);
+        }
+
+        .card h3 {
+            font-size: 1rem;
+            color: var(--primary);
+            margin-bottom: 12px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        /* CANVAS INTERACTIVO */
+        .canvas-container { text-align: center; position: relative; }
+        canvas {
+            background: #fdfdfd;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            cursor: grab;
+            touch-action: none; /* Previene el scroll al arrastrar en celular */
+        }
+        canvas:active { cursor: grabbing; }
+
+        /* CONTROLES PEDAGÓGICOS */
+        .controls { display: flex; flex-direction: column; gap: 12px; }
+        .control-group {
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        label { font-weight: 600; font-size: 0.85rem; color: var(--primary); }
+        input[type="range"] { width: 100%; margin-top: 6px; accent-color: var(--secondary); }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
+        button {
+            flex: 1; padding: 12px; border: none; border-radius: 6px;
+            background: var(--secondary); color: white; font-weight: bold;
+            cursor: pointer; transition: 0.2s; font-size: 0.85rem;
+        }
+        button:hover { background: var(--primary); }
+        button.reset { background: #e74c3c; }
+        button.reset:hover { background: #c0392b; }
+
+        /* TABLA MUESTRA */
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 5px; }
+        th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: center; }
+        th { background: var(--primary); color: white; }
+        tr:nth-child(even) { background: #f8fafc; }
+
+        .alert-box {
+            background: #e8f4f8;
+            border-left: 4px solid var(--secondary);
+            padding: 10px;
+            font-size: 0.85rem;
+            margin-top: 12px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .drag-hint {
+            font-size: 0.75rem;
+            color: #7f8c8d;
+            font-style: italic;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ENCABEZADO INSTITUCIONAL -->
+    <header>
+        <h1>Colegio Carlos Vicente Rey</h1>
+        <h2>Laboratorio Virtual de Física: Ley de Hooke</h2>
+    </header>
+
+    <!-- BARRA DE CRÉDITOS Y DOCENTE -->
+    <div class="credits-bar">
+        <span>Docente: John Archila Ruiz</span>
+        <span>Creadores: Stephany Acevedo | Sahira Pedraza | Pablo Oviedo</span>
+    </div>
+
+    <div class="grid-container">
+        <!-- ÁREA EXPERIMENTAL INTERACTIVA -->
+        <div class="card canvas-container">
+            <h3>Montaje Experimental Interactivo</h3>
+            <canvas id="simCanvas" width="300" height="340"></canvas>
+            <p class="drag-hint">💡 Tip: Haz clic/toca la pesa naranja y arrástrala hacia abajo para deformar el resorte directamente.</p>
+            <div id="statusAlert" class="alert-box">Arrastra la pesa o ajusta las barras para experimentar.</div>
+        </div>
+
+        <!-- PANEL DE CONTROLES -->
+        <div class="card controls">
+            <h3>Panel de Control y Parámetros</h3>
+            
+            <div class="control-group">
+                <label>Masa suspendida ($m$): <span id="valMasa">0.20</span> kg (<span id="valGramos">200</span> g)</label>
+                <input type="range" id="inputMasa" min="0.05" max="0.50" step="0.05" value="0.20">
+            </div>
+
+            <div class="control-group">
+                <label>Constante elástica ($k$): <span id="valK">30</span> N/m</label>
+                <input type="range" id="inputK" min="10" max="100" step="5" value="30">
+            </div>
+
+            <div class="btn-group">
+                <button onclick="guardarDato()">Guardar Dato</button>
+                <button class="reset" onclick="reiniciarSimulacion()">Reiniciar</button>
+            </div>
+        </div>
+
+        <!-- TABLA DE RESULTADOS -->
+        <div class="card table-wrapper" style="grid-column: span 2;">
+            <h3>Registro de Mediciones Experimentales</h3>
+            <table id="tablaDatos">
+                <thead>
+                    <tr>
+                        <th>Prueba</th>
+                        <th>Masa (kg)</th>
+                        <th>Fuerza Peso (N)</th>
+                        <th>Deformación x (m)</th>
+                        <th>k calculada (N/m)</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const g = 9.81;
+        let nPrueba = 1;
+
+        const inputMasa = document.getElementById('inputMasa');
+        const inputK = document.getElementById('inputK');
+
+        // Estado del arrastre (Drag and Drop)
+        let isDragging = false;
+        let dragY = 0;
+
+        function actualizarValoresInputs() {
+            const m = parseFloat(inputMasa.value);
+            document.getElementById('valMasa').innerText = m.toFixed(2);
+            document.getElementById('valGramos').innerText = (m * 1000).toFixed(0);
+            document.getElementById('valK').innerText = inputK.value;
+            dibujar();
+        }
+
+        inputMasa.addEventListener('input', actualizarValoresInputs);
+        inputK.addEventListener('input', actualizarValoresInputs);
+
+        // EVENTOS PARA INTERACCIÓN DIRECTA EN EL CANVAS (MOUSE & TOUCH)
+        function obtenerPosicionY(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return clientY - rect.top;
+        }
+
+        function iniciarArrastre(e) {
+            const posY = obtenerPosicionY(e);
+            const m = parseFloat(inputMasa.value);
+            const k = parseFloat(inputK.value);
+            const F = m * g;
+            const x = F / k;
+            
+            const inicioY = 30;
+            const longitudBase = 50;
+            const elongacionPX = Math.min(x * 300, 180);
+            const masaY = inicioY + longitudBase + elongacionPX;
+
+            // Detectar si el toque/clic es cerca de la masa
+            if (posY >= masaY - 10 && posY <= masaY + 50) {
+                isDragging = true;
+            }
+        }
+
+        function moverArrastre(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            const posY = obtenerPosicionY(e);
+            const inicioY = 30;
+            const longitudBase = 50;
+            
+            // Calcular nueva deformación en píxeles
+            let nuevaElongacionPX = posY - inicioY - longitudBase;
+            if (nuevaElongacionPX < 15) nuevaElongacionPX = 15; // Límite superior
+            if (nuevaElongacionPX > 180) nuevaElongacionPX = 180; // Límite inferior
+
+            // Calcular nueva deformación x (en metros)
+            const nuevaX = nuevaElongacionPX / 300;
+            const k = parseFloat(inputK.value);
+            
+            // Recalcular la masa correspondiente para que coincida con la interacción
+            let nuevaFuerza = k * nuevaX;
+            let nuevaMasa = nuevaFuerza / g;
+
+            // Ajustar los deslizadores
+            if (nuevaMasa < 0.05) nuevaMasa = 0.05;
+            if (nuevaMasa > 0.50) nuevaMasa = 0.50;
+
+            inputMasa.value = nuevaMasa.toFixed(2);
+            document.getElementById('valMasa').innerText = nuevaMasa.toFixed(2);
+            document.getElementById('valGramos').innerText = (nuevaMasa * 1000).toFixed(0);
+
+            dibujar();
+        }
+
+        function detenerArrastre() { isDragging = false; }
+
+        canvas.addEventListener('mousedown', iniciarArrastre);
+        canvas.addEventListener('mousemove', moverArrastre);
+        window.addEventListener('mouseup', detenerArrastre);
+
+        canvas.addEventListener('touchstart', iniciarArrastre);
+        canvas.addEventListener('touchmove', moverArrastre);
+        window.addEventListener('touchend', detenerArrastre);
+
+        function dibujar() {
+            const m = parseFloat(inputMasa.value);
+            const k = parseFloat(inputK.value);
+            const F = m * g;
+            const x = F / k;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Soporte Fijo
+            ctx.fillStyle = '#1b365d';
+            ctx.fillRect(70, 15, 160, 10);
+
+            // Línea de Reposo (Equilibrio)
+            ctx.strokeStyle = '#2980b9';
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(40, 60); ctx.lineTo(260, 60);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#2980b9';
+            ctx.font = '10px Arial';
+            ctx.fillText("Posición de Reposo (x0)", 40, 52);
+
+            // Resorte
+            const inicioY = 25;
+            const longitudBase = 50;
+            const elongacionPX = Math.min(x * 300, 180);
+            const finalY = inicioY + longitudBase + elongacionPX;
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 3;
+            let numVueltas = 12;
+            let pasoY = (finalY - inicioY) / numVueltas;
+            ctx.moveTo(150, inicioY);
+            for (let i = 1; i <= numVueltas; i++) {
+                let posX = (i % 2 === 0) ? 168 : 132;
+                if(i === numVueltas) posX = 150;
+                ctx.lineTo(posX, inicioY + (i * pasoY));
+            }
+            ctx.stroke();
+
+            // Pesa Interactivable
+            ctx.fillStyle = isDragging ? '#d35400' : '#e67e22';
+            ctx.fillRect(128, finalY, 44, 35);
+            ctx.strokeStyle = '#ba4a00';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(128, finalY, 44, 35);
+
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 11px Arial';
+            ctx.fillText(`${(m*1000).toFixed(0)}g`, 136, finalY + 21);
+
+            // Regla de Medición
+            ctx.strokeStyle = '#95a5a6';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(230, 60); ctx.lineTo(230, 290);
+            ctx.stroke();
+
+            ctx.fillStyle = '#1b365d';
+            ctx.font = 'bold 11px Arial';
+            ctx.fillText(`x = ${x.toFixed(3)} m`, 235, finalY + 5);
+        }
+
+        function guardarDato() {
+            const m = parseFloat(inputMasa.value);
+            const k = parseFloat(inputK.value);
+            const F = m * g;
+            const x = F / k;
+
+            const tbody = document.getElementById('tablaDatos').querySelector('tbody');
+            const fila = document.createElement('tr');
+            fila.innerHTML = `
+                <td>${nPrueba++}</td>
+                <td>${m.toFixed(2)}</td>
+                <td>${F.toFixed(2)}</td>
+                <td>${x.toFixed(3)}</td>
+                <td>${(F/x).toFixed(1)}</td>
+            `;
+            tbody.appendChild(fila);
+
+            const alert = document.getElementById('statusAlert');
+            alert.innerText = `✅ Prueba ${nPrueba - 1} registrada: F = ${F.toFixed(2)} N | x = ${x.toFixed(3)} m`;
+        }
+
+        function reiniciarSimulacion() {
+            document.getElementById('tablaDatos').querySelector('tbody').innerHTML = '';
+            nPrueba = 1;
+            inputMasa.value = 0.20;
+            inputK.value = 30;
+            document.getElementById('statusAlert').innerText = "Arrastra la pesa o ajusta las barras para experimentar.";
+            actualizarValoresInputs();
+        }
+
+        actualizarValoresInputs();
+    </script>
+</body>
+</html>
